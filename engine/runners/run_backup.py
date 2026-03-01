@@ -6,8 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from dotenv import load_dotenv
-
+from engine.common.env_loader import load_env_file
 from engine.common.logger import get_logger
 from engine.extractors.knack_extractor import KnackExtractor
 from engine.normalizers.json_normalizer import write_json_gz
@@ -61,7 +60,7 @@ def main():
     # Env + logger
     # -----------------------------------------------------
 
-    load_dotenv(BASE_DIR / "control/config/credentials.env")
+    load_env_file(BASE_DIR / "control/config/credentials.env")
 
     logger = get_logger(str(BASE_DIR / "control/logs"))
     logger.info("=== BACKUP RUN START ===")
