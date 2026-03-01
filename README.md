@@ -15,12 +15,14 @@ Il comando principale è:
 
 ```bash
 ./venv/bin/python -m engine.runners.run_backup --all
+python -m engine.runners.run_backup --all
 ```
 
 oppure:
 
 ```bash
 ./venv/bin/python -m engine.runners.run_backup --app <nome_app>
+python -m engine.runners.run_backup --app <nome_app>
 ```
 
 ---
@@ -35,11 +37,13 @@ oppure:
 
 Dipendenze usate dal codice:
 
+- `python-dotenv`
 - `PyYAML`
 - `requests`
 - `boto3` (con `botocore`)
 
 > Installa dipendenze con `./venv/bin/pip install -r requirements.txt` (oppure `pip install -r requirements.txt` nel tuo ambiente).
+> Nota: il progetto in questo stato non espone un `requirements.txt`; se devi ricreare l'ambiente da zero, installa i pacchetti sopra.
 
 ---
 
@@ -102,6 +106,7 @@ Contiene tutte le variabili sensibili:
 - app id e api key Knack per ogni app
 
 Il runner carica automaticamente questo file (`KEY=VALUE`) all'avvio.
+Il runner carica questo file automaticamente con `load_dotenv(...)`.
 
 ---
 
@@ -157,6 +162,7 @@ source venv/bin/activate
 ```
 
 ## 6.3 Verifica CLI disponibile
+## 6.2 Verifica CLI disponibile
 
 ```bash
 ./venv/bin/python -m engine.runners.run_backup --help
@@ -171,11 +177,20 @@ Output atteso: opzioni `--app APP` oppure `--all`.
 ```
 
 ## 6.5 Esegui backup di una sola app
+## 6.3 Esegui backup di tutte le app
+
+```bash
+./venv/bin/python -m engine.runners.run_backup --all
+python -m engine.runners.run_backup --all
+```
+
+## 6.4 Esegui backup di una sola app
 
 Esempio:
 
 ```bash
 ./venv/bin/python -m engine.runners.run_backup --app app_unimarconi
+python -m engine.runners.run_backup --app app_unimarconi
 ```
 
 Se il nome app non esiste in `apps.yaml`, il processo termina con errore.
@@ -196,6 +211,7 @@ Atteso: almeno `apps.yaml` e `credentials.env`.
 
 ```bash
 ./venv/bin/python - <<'PY'
+python - <<'PY'
 import yaml
 from pathlib import Path
 p = Path('control/config/apps.yaml')
@@ -210,6 +226,7 @@ PY
 
 ```bash
 ./venv/bin/python - <<'PY'
+python - <<'PY'
 import yaml
 from pathlib import Path
 
@@ -290,6 +307,7 @@ Chiavi oggetti generate dal runner:
 cd /opt/backup-hub
 source venv/bin/activate
 ./venv/bin/python -m engine.runners.run_backup --all
+python -m engine.runners.run_backup --all
 ```
 
 Poi controlla:
