@@ -62,11 +62,12 @@ backup-hub/
 
 ### Attenzione al path base
 
-Il runner usa un path **hardcoded**:
+Il runner usa un path base configurabile:
 
-- `BASE_DIR = /opt/backup-hub`
+- default: `BASE_DIR = /opt/backup-hub`
+- override via env: `BACKUP_HUB_BASE_DIR=/opt/knack-services/backup-hub`
 
-Quindi in produzione l'app va mappata in `/opt/backup-hub` (oppure bisogna modificare il codice).
+In produzione Hetzner puoi quindi impostare `BACKUP_HUB_BASE_DIR` senza patchare il codice.
 
 ---
 
@@ -128,6 +129,10 @@ Obbligatorie:
 - `WASABI_ENDPOINT`
 - `WASABI_REGION`
 
+Opzionale:
+
+- `BACKUP_HUB_BASE_DIR` (override del path base locale usato dal runner)
+
 ## 5.2 Knack (una coppia per ogni app)
 
 Per ogni app definita in `apps.yaml`, devono esistere:
@@ -148,6 +153,8 @@ Il nome esatto è quello specificato nei campi:
 
 ```bash
 source venv/bin/activate
+# opzionale (Hetzner)
+export BACKUP_HUB_BASE_DIR=/opt/knack-services/backup-hub
 ```
 
 ## 6.2 Installa/aggiorna dipendenze

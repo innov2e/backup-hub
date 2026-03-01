@@ -20,8 +20,9 @@ echo "== VENV + DEPS =="
 ./venv/bin/python -V
 ./venv/bin/pip install -r requirements.txt
 
-echo "== PATH HARDCODE CHECK =="
-rg -n "/opt/backup-hub" engine/runners README.md vm-hetzner.md || true
+echo "== SET BASE DIR FOR HETZNER =="
+export BACKUP_HUB_BASE_DIR=/opt/knack-services/backup-hub
+echo "BACKUP_HUB_BASE_DIR=$BACKUP_HUB_BASE_DIR"
 
 echo "== CONFIG FILE CHECK =="
 test -f control/config/apps.yaml
@@ -75,63 +76,25 @@ cd /opt/knack-services/backup-hub
 
 ---
 
-## 2) Verifica riferimenti hardcoded al vecchio path
+## 2) Configura il base path su Hetzner (senza patch codice)
 
-Nel progetto ci sono riferimenti a `/opt/backup-hub` che in produzione Hetzner devono diventare `/opt/knack-services/backup-hub`.
-
-Controllo consigliato:
+Il runner supporta la variabile ambiente `BACKUP_HUB_BASE_DIR`. Su Hetzner imposta:
 
 ```bash
-cd /opt/knack-services/backup-hub
-rg -n "/opt/backup-hub" -g '!venv/**'
+export BACKUP_HUB_BASE_DIR=/opt/knack-services/backup-hub
+```
+
+Verifica valore:
+
+```bash
+echo "$BACKUP_HUB_BASE_DIR"
 ```
 
 ---
 
-## 3) File da aggiornare (riferimenti path)
+## 3) Verifica funzionale minima dopo update
 
-## 3.1 File runtime principale (OBBLIGATORIO)
-
-- `engine/runners/run_backup.py`
-
-Da cambiare:
-
-```python
-BASE_DIR = Path("/opt/backup-hub")
-```
-
-in:
-
-```python
-BASE_DIR = Path("/opt/knack-services/backup-hub")
-```
-
-> Questo è il file effettivamente usato dal comando `python -m engine.runners.run_backup`.
-
-## 3.2 File documentazione (consigliato)
-
-- `README.md`
-
-Aggiorna i punti dove compare `/opt/backup-hub` per allineare la doc alla produzione Hetzner.
-
-## 3.3 File storici/backup presenti nel repo (solo se davvero usati)
-
-Nel repository esistono anche:
-
-- `engine/runners/run_backup.py.001`
-- `engine/runners/run_backup.py.noattachment`
-- `engine/runners/run_backup.py.noattachment01`
-
-Contengono lo stesso riferimento al vecchio path. Normalmente non sono usati in produzione, ma:
-
-- se li usi manualmente, aggiorna anche questi;
-- se non servono, valuta di archiviarli/rimuoverli per evitare confusione.
-
----
-
-## 4) Verifica funzionale minima dopo update
-
-Dopo aver aggiornato il path nel runner:
+Dopo aver impostato `BACKUP_HUB_BASE_DIR`:
 
 ```bash
 cd /opt/knack-services/backup-hub
@@ -149,7 +112,7 @@ ls -l /opt/knack-services/backup-hub/control/config/credentials.env
 
 ---
 
-## 5) Run operativo
+## 4) Run operativo
 
 Singola app:
 
@@ -174,10 +137,6 @@ tail -n 100 /opt/knack-services/backup-hub/control/logs/run_$(date +%F).log
 
 ---
 
-## 6) Suggerimento per evitare futuri hardcode
+## 5) Nota tecnica
 
-Per evitare di dover cambiare codice a ogni diversa installazione, considera in una PR futura di rendere `BASE_DIR` configurabile via env var, ad esempio:
-
-- `BACKUP_HUB_BASE_DIR=/opt/knack-services/backup-hub`
-
-con fallback a un valore di default.
+`BASE_DIR` è ora configurabile via `BACKUP_HUB_BASE_DIR`, con fallback al default `/opt/backup-hub`.

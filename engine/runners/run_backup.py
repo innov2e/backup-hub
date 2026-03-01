@@ -20,7 +20,8 @@ from engine.normalizers.attachment_handler import (
 # Costanti
 # ---------------------------------------------------------
 
-BASE_DIR = Path("/opt/backup-hub")
+DEFAULT_BASE_DIR = Path("/opt/backup-hub")
+BASE_DIR = Path(os.environ.get("BACKUP_HUB_BASE_DIR", str(DEFAULT_BASE_DIR)))
 TMP_DIR = BASE_DIR / "tmp"
 
 
