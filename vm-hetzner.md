@@ -2,6 +2,47 @@
 
 Questa checklist serve quando hai già fatto merge su GitHub e devi allineare la VM di produzione Hetzner.
 
+## 0) Blocco unico copy/paste (update + deps + check E2E)
+
+> Esegui questo blocco direttamente sulla VM Hetzner.
+
+```bash
+set -euo pipefail
+
+cd /opt/knack-services/backup-hub
+
+echo "== GIT UPDATE =="
+git fetch --all --prune
+git checkout main
+git pull --ff-only origin main
+
+echo "== VENV + DEPS =="
+./venv/bin/python -V
+./venv/bin/pip install -r requirements.txt
+
+echo "== PATH HARDCODE CHECK =="
+rg -n "/opt/backup-hub" engine/runners README.md vm-hetzner.md || true
+
+echo "== CONFIG FILE CHECK =="
+test -f control/config/apps.yaml
+test -f control/config/credentials.env
+ls -l control/config/apps.yaml control/config/credentials.env
+
+echo "== CLI SMOKE TEST =="
+./venv/bin/python -m engine.runners.run_backup --help
+
+echo "== E2E RUN (ALL APPS) =="
+./venv/bin/python -m engine.runners.run_backup --all
+
+echo "== LOG TAIL =="
+ls -lh control/logs
+tail -n 120 control/logs/run_$(date +%F).log
+```
+
+> Se vuoi un primo test meno impattante, sostituisci `--all` con `--app app_unimarconi`.
+
+---
+
 ## 1) Aggiorna il clone in produzione
 
 ```bash
