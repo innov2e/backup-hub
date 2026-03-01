@@ -6,8 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from dotenv import load_dotenv
-
+from engine.common.env_loader import load_env_file
 from engine.common.logger import get_logger
 from engine.extractors.knack_extractor import KnackExtractor
 from engine.normalizers.json_normalizer import write_json_gz
@@ -21,7 +20,8 @@ from engine.normalizers.attachment_handler import (
 # Costanti
 # ---------------------------------------------------------
 
-BASE_DIR = Path("/opt/backup-hub")
+DEFAULT_BASE_DIR = Path("/opt/backup-hub")
+BASE_DIR = Path(os.environ.get("BACKUP_HUB_BASE_DIR", str(DEFAULT_BASE_DIR)))
 TMP_DIR = BASE_DIR / "tmp"
 
 
@@ -61,7 +61,7 @@ def main():
     # Env + logger
     # -----------------------------------------------------
 
-    load_dotenv(BASE_DIR / "control/config/credentials.env")
+    load_env_file(BASE_DIR / "control/config/credentials.env")
 
     logger = get_logger(str(BASE_DIR / "control/logs"))
     logger.info("=== BACKUP RUN START ===")
