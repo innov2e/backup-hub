@@ -1,0 +1,204 @@
+import os
+import sys
+import yaml
+import argparse
+from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
+
+from engine.common.logger import get_logger
+from engine.extractors.knack_extractor import KnackExtractor
+from engine.normalizers.json_normalizer import write_json_gz
+from engine.common.s3_uploader import S3Uploader
+from engine.normalizers.attachment_handler import (
+    extract_file_entries,
+    download_file
+)
+
+BASE_DIR = Path("/opt/backup-hub")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        prog="run_backup",
+        description="Backup Hub – Runner per backup applicazioni",
+        add_help=False
+    )
+
+    parser.add_argument(
+        "--app",
+        help="Nome dell'app da backuppare (esecuzione selettiva)"
+    )
+
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Esegue il backup di tutte le app configurate"
+    )
+
+    parser.add_argument(
+        "-h", "--help",
+        action="store_true",
+        help="Mostra questo messaggio di aiuto"
+    )
+
+    args = parser.parse_args()
+
+    # Help esplicito se nessun parametro
+    if args.help or (not args.app and not args.all):
+        print("""
+USO CORRETTO:
+
+  Backup di UNA app specifica:
+    python -m engine.runners.run_backup --app <nome_app>
+
+  Backup di TUTTE le app:
+    python -m engine.runners.run_backup --all
+
+ESEMPI:
+  python -m engine.runners.run_backup --app app_unimarconi
+  python -m engine.runners.run_backup --all
+""")
+        sys.exit(0)
+
+    # Mutua esclusione
+    if args.app and args.all:
+        print("ERRORE: usare --app oppure --all, non entrambi.")
+        sys.exit(1)
+
+    return args
+
+
+def main():
+    args = parse_args()
+
+    # Load environment
+    load_dotenv(BASE_DIR / "control/config/credentials.env")
+
+    logger = get_logger(str(BASE_DIR / "control/logs"))
+    logger.info("=== BACKUP RUN START ===")
+
+    # Read apps.yaml
+    with open(BASE_DIR / "control/config/apps.yaml", "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+
+    apps_cfg = cfg.get("apps", [])
+
+    # Validazione app richiesta
+    if args.app:
+        app_names = [a.get("name") for a in apps_cfg]
+        if args.app not in app_names:
+            logger.error(
+                f"App '{args.app}' non trovata in apps.yaml. "
+                f"App disponibili: {', '.join(app_names)}"
+            )
+            sys.exit(2)
+
+    bucket = os.environ["WASABI_BUCKET"]
+    endpoint = os.environ["WASABI_ENDPOINT"]
+    region = os.environ["WASABI_REGION"]
+
+    s3 = S3Uploader(
+        endpoint_url=endpoint,
+        region=region,
+        bucket=bucket,
+        logger=logger
+    )
+
+    run_date = datetime.now().strftime("%Y-%m-%d")
+
+    tmp_dir = BASE_DIR / "tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    # Main loop
+    for app in apps_cfg:
+        if app.get("source") != "knack":
+            logger.info(f"SKIP non-knack app: {app.get('name')}")
+            continue
+
+        app_name = app["name"]
+
+        # Filtro esecuzione
+        if args.app and app_name != args.app:
+            continue
+
+        logger.info(f"Processing app: {app_name}")
+
+        app_id = os.environ[app["knack_app_id_env"]]
+        api_key = os.environ[app["knack_api_key_env"]]
+
+        extractor = KnackExtractor(
+            app_id=app_id,
+            api_key=api_key,
+            logger=logger
+        )
+
+        for obj in app.get("objects", []):
+            obj_name = obj["name"]
+            object_id = obj["object_id"]
+
+            logger.info(f"Processing object: {obj_name}")
+
+            # 1) Extract records
+            records = extractor.fetch_all_records(object_id=object_id)
+
+            # 2) Write JSON locally
+            local_json = tmp_dir / f"{obj_name}.json.gz"
+            write_json_gz(str(local_json), records)
+
+            # 3) Upload JSON
+            s3_key_json = (
+                f"knack/{app_name}/{run_date}/data/{obj_name}.json.gz"
+            )
+            s3.upload_file(str(local_json), s3_key_json)
+
+            # 4) Handle attachments
+            attachments_base = (
+                f"knack/{app_name}/{run_date}/attachments/{obj_name}"
+            )
+
+            attachments_count = 0
+
+            for record in records:
+                record_id = record.get("id")
+                if not record_id:
+                    continue
+
+                file_entries = extract_file_entries(record)
+
+                for f in file_entries:
+                    tmp_file = tmp_dir / f"{f['file_id']}_{f['filename']}"
+
+                    try:
+                        download_file(f["url"], tmp_file)
+
+                        s3_key_file = (
+                            f"{attachments_base}/{record_id}/"
+                            f"{f['file_id']}_{f['filename']}"
+                        )
+
+                        s3.upload_file(str(tmp_file), s3_key_file)
+                        attachments_count += 1
+
+                        logger.debug(
+                            f"Attachment saved: "
+                            f"app={app_name}, object={obj_name}, "
+                            f"record={record_id}, file={f['filename']}"
+                        )
+
+                    except Exception as e:
+                        logger.error(
+                            "Attachment error "
+                            f"(app={app_name}, object={obj_name}, "
+                            f"record={record_id}, file={f['filename']}): {e}"
+                        )
+
+                    finally:
+                        if tmp_file.exists():
+                            tmp_file.unlink()
+
+    logger.info("=== BACKUP RUN END ===")
+
+
+if __name__ == "__main__":
+    main()

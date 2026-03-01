@@ -1,0 +1,110 @@
+import os
+import yaml
+from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
+
+from engine.common.logger import get_logger
+from engine.extractors.knack_extractor import KnackExtractor
+from engine.normalizers.json_normalizer import write_json_gz
+from engine.common.s3_uploader import S3Uploader
+
+# ➕ NUOVI IMPORT PER ALLEGATI
+from engine.normalizers.attachment_handler import (
+    extract_file_entries,
+    download_file
+)
+
+BASE_DIR = Path("/opt/backup-hub")
+
+def main():
+    # Load env
+    load_dotenv(BASE_DIR / "control/config/credentials.env")
+
+    logger = get_logger(str(BASE_DIR / "control/logs"))
+    logger.info("=== BACKUP RUN START ===")
+
+    # Read apps.yaml
+    with open(BASE_DIR / "control/config/apps.yaml", "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+
+    bucket = os.environ["WASABI_BUCKET"]
+    endpoint = os.environ["WASABI_ENDPOINT"]
+    region = os.environ["WASABI_REGION"]
+
+    s3 = S3Uploader(endpoint_url=endpoint, region=region, bucket=bucket, logger=logger)
+
+    run_date = datetime.now().strftime("%Y-%m-%d")
+
+    # ➕ assicura esistenza directory tmp
+    tmp_dir = BASE_DIR / "tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    for app in cfg.get("apps", []):
+        if app.get("source") != "knack":
+            logger.info(f"SKIP non-knack app: {app.get('name')}")
+            continue
+
+        app_name = app["name"]
+        app_id = os.environ[app["knack_app_id_env"]]
+        api_key = os.environ[app["knack_api_key_env"]]
+
+        extractor = KnackExtractor(app_id=app_id, api_key=api_key, logger=logger)
+
+        for obj in app.get("objects", []):
+            obj_name = obj["name"]
+            object_id = obj["object_id"]
+
+            logger.info(f"Processing object: {obj_name}")
+
+            # 1) extract records
+            records = extractor.fetch_all_records(object_id=object_id)
+
+            # 2) write JSON locally
+            local_json = tmp_dir / f"{obj_name}.json.gz"
+            write_json_gz(str(local_json), records)
+
+            # 3) upload JSON to S3
+            s3_key_json = f"knack/{app_name}/{run_date}/data/{obj_name}.json.gz"
+            s3.upload_file(str(local_json), s3_key_json)
+
+            # ➕ 4) GESTIONE ALLEGATI
+            attachments_base = (
+                f"knack/{app_name}/{run_date}/attachments/{obj_name}"
+            )
+
+            for record in records:
+                record_id = record.get("id")
+                if not record_id:
+                    continue
+
+                file_entries = extract_file_entries(record)
+
+                for f in file_entries:
+                    tmp_file = tmp_dir / f"{f['file_id']}_{f['filename']}"
+
+                    try:
+                        download_file(f["url"], tmp_file)
+
+                        s3_key_file = (
+                            f"{attachments_base}/{record_id}/"
+                            f"{f['file_id']}_{f['filename']}"
+                        )
+
+                        s3.upload_file(str(tmp_file), s3_key_file)
+
+                    except Exception as e:
+                        logger.error(
+                            f"Attachment error "
+                            f"(object={obj_name}, record={record_id}, file={f['filename']}): {e}"
+                        )
+
+                    finally:
+                        if tmp_file.exists():
+                            tmp_file.unlink()
+
+    logger.info("=== BACKUP RUN END ===")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,59 @@
+import os
+import yaml
+from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
+
+from engine.common.logger import get_logger
+from engine.extractors.knack_extractor import KnackExtractor
+from engine.normalizers.json_normalizer import write_json_gz
+from engine.common.s3_uploader import S3Uploader
+
+BASE_DIR = Path("/opt/backup-hub")
+
+def main():
+    # Load env
+    load_dotenv(BASE_DIR / "control/config/credentials.env")
+
+    logger = get_logger(str(BASE_DIR / "control/logs"))
+    logger.info("=== BACKUP RUN START ===")
+
+    # Read apps.yaml
+    with open(BASE_DIR / "control/config/apps.yaml", "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+
+    bucket = os.environ["WASABI_BUCKET"]
+    endpoint = os.environ["WASABI_ENDPOINT"]
+    region = os.environ["WASABI_REGION"]
+
+    s3 = S3Uploader(endpoint_url=endpoint, region=region, bucket=bucket, logger=logger)
+
+    run_date = datetime.now().strftime("%Y-%m-%d")
+
+    for app in cfg.get("apps", []):
+        if app.get("source") != "knack":
+            logger.info(f"SKIP non-knack app: {app.get('name')}")
+            continue
+
+        app_name = app["name"]
+        app_id = os.environ[app["knack_app_id_env"]]
+        api_key = os.environ[app["knack_api_key_env"]]
+
+        extractor = KnackExtractor(app_id=app_id, api_key=api_key, logger=logger)
+
+        for obj in app.get("objects", []):
+            obj_name = obj["name"]
+            object_id = obj["object_id"]
+
+            # 1) extract
+            records = extractor.fetch_all_records(object_id=object_id)
+            # 2) write locally
+            local_path = BASE_DIR / "tmp" / f"{obj_name}.json.gz"
+            write_json_gz(str(local_path), records)
+            # 3) upload to S3
+            s3_key = f"knack/{app_name}/{run_date}/data/{obj_name}.json.gz"
+            s3.upload_file(str(local_path), s3_key)
+
+    logger.info("=== BACKUP RUN END ===")
+if __name__ == "__main__":
+    main()

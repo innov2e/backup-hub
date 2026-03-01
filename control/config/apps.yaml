@@ -1,0 +1,44 @@
+apps:
+  - name: app_unimarconi
+    source: knack
+    knack_app_id_env: KNACK_APP_ID_UNIMARCONI
+    knack_api_key_env: KNACK_API_KEY_UNIMARCONI
+    objects:
+      - name: SGCS_Campaigns                # Tabella Campagne
+        object_id: "object_8"
+      - name: SGCS_Students                 # Tabella studenti
+        object_id: "object_10"
+      - name: SGCS_StuCampaigns             # Tabella studenti<->Campagne
+        object_id: "object_11"
+      - name: SGCS_Calls                         # Tabella Chiamate
+        object_id: "object_15"
+      - name: SGCS_lkp_StuCamp_Stato             # Tabella Lookup Stato
+        object_id: "object_12"
+      - name: SGCS_lkp_StuCamp_Priorita          # Tabella Lookup Priorità
+        object_id: "object_13"
+      - name: SGCS_lkp_CallOutcomes              # Tabella Lookup
+        object_id: "object_9"
+      - name: SGCS_lkp_Calloutcomes_Categories   # Tabella Lookup
+        object_id: "object_17"
+      - name: SGCS_lkp_Calloutcomes_labels       # Tabella Lookup
+        object_id: "object_16"
+      - name: SGCS_sys_img                       # Tabella Immagini
+        object_id: "object_18"
+      - name: SGCS_lkp_Student_Faculty           # Tabella Lookup
+        object_id: "object_14"
+      - name: SGCS_lkp_Chiusure_Aree             # Tabella Lookup
+        object_id: "object_22"
+      - name: SGCS_lkp_Chiusure_Sottoaree        # Tabella Lookup
+        object_id: "object_23"
+      - name: SGCS_lkp_Chiusure_Microaree        # Tabella Lookup
+        object_id: "object_24"
+      - name: SGCS_lkp_CallOutcomes_result       # Tabella Lookup
+        object_id: "object_25"
+
+  - name: app_sicil_omniasuite
+    source: knack
+    knack_app_id_env: KNACK_APP_ID_OMNIASUITE
+    knack_api_key_env: KNACK_API_KEY_OMNIASUITE
+    objects:
+      - name: Allegati                # Tabella Allegati
+        object_id: "object_9"
