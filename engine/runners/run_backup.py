@@ -87,11 +87,31 @@ def main():
     # S3 / Wasabi
     # -----------------------------------------------------
 
+    wasabi_access_key = (
+        os.environ.get("WASABI_ACCESS_KEY")
+        or os.environ.get("AWS_ACCESS_KEY_ID")
+    )
+    wasabi_secret_key = (
+        os.environ.get("WASABI_SECRET_KEY")
+        or os.environ.get("AWS_SECRET_ACCESS_KEY")
+    )
+    wasabi_session_token = os.environ.get("AWS_SESSION_TOKEN")
+
+    if not (wasabi_access_key and wasabi_secret_key):
+        logger.warning(
+            "No explicit S3 credentials found in env "
+            "(WASABI_ACCESS_KEY/WASABI_SECRET_KEY or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY). "
+            "Falling back to boto3 default credential chain."
+        )
+
     s3 = S3Uploader(
         endpoint_url=os.environ["WASABI_ENDPOINT"],
         region=os.environ["WASABI_REGION"],
         bucket=os.environ["WASABI_BUCKET"],
-        logger=logger
+        logger=logger,
+        access_key_id=wasabi_access_key,
+        secret_access_key=wasabi_secret_key,
+        session_token=wasabi_session_token,
     )
 
     run_date = datetime.now().strftime("%Y-%m-%d")

@@ -29,6 +29,21 @@ test -f control/config/apps.yaml
 test -f control/config/credentials.env
 ls -l control/config/apps.yaml control/config/credentials.env
 
+
+echo "== S3 CREDENTIALS CHECK =="
+./venv/bin/python - <<'PY'
+import os
+missing = []
+if not (os.getenv('WASABI_ACCESS_KEY') or os.getenv('AWS_ACCESS_KEY_ID')):
+    missing.append('WASABI_ACCESS_KEY or AWS_ACCESS_KEY_ID')
+if not (os.getenv('WASABI_SECRET_KEY') or os.getenv('AWS_SECRET_ACCESS_KEY')):
+    missing.append('WASABI_SECRET_KEY or AWS_SECRET_ACCESS_KEY')
+if missing:
+    print('MISSING:', ', '.join(missing))
+    raise SystemExit(1)
+print('OK: S3 credentials present in env')
+PY
+
 echo "== CLI SMOKE TEST =="
 ./venv/bin/python -m engine.runners.run_backup --help
 
@@ -73,6 +88,7 @@ cd /opt/knack-services/backup-hub
 ```
 
 > Se vedi errori tipo `ModuleNotFoundError`, verifica sempre che i pacchetti siano installati nel venv corretto.
+> Se vedi `NoCredentialsError`, verifica che `WASABI_ACCESS_KEY` e `WASABI_SECRET_KEY` siano valorizzate in `control/config/credentials.env`.
 
 ---
 

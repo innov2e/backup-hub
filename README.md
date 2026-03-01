@@ -128,9 +128,12 @@ Obbligatorie:
 - `WASABI_BUCKET`
 - `WASABI_ENDPOINT`
 - `WASABI_REGION`
+- `WASABI_ACCESS_KEY` *(oppure `AWS_ACCESS_KEY_ID`)*
+- `WASABI_SECRET_KEY` *(oppure `AWS_SECRET_ACCESS_KEY`)*
 
-Opzionale:
+Opzionali:
 
+- `AWS_SESSION_TOKEN` (solo credenziali temporanee)
 - `BACKUP_HUB_BASE_DIR` (override del path base locale usato dal runner)
 
 ## 5.2 Knack (una coppia per ogni app)
@@ -286,6 +289,8 @@ Chiavi oggetti generate dal runner:
   - In `credentials.env` manca una chiave referenziata in `apps.yaml`.
 - **Errore upload S3**
   - Verifica endpoint/regione/bucket e connettività rete.
+- **Errore `NoCredentialsError: Unable to locate credentials`**
+  - Imposta `WASABI_ACCESS_KEY` e `WASABI_SECRET_KEY` (o variabili AWS equivalenti) in `control/config/credentials.env`.
 - **Errore chiamate Knack**
   - Verifica `KNACK_APP_ID_*` / `KNACK_API_KEY_*` e accesso API.
 
