@@ -22,6 +22,18 @@ ls -l README.md
 
 ---
 
+
+## 1.1 Dipendenze Python (se il venv è nuovo o incompleto)
+
+```bash
+cd /opt/knack-services/backup-hub
+./venv/bin/pip install -r requirements.txt
+```
+
+> Se vedi errori tipo `ModuleNotFoundError`, verifica sempre che i pacchetti siano installati nel venv corretto.
+
+---
+
 ## 2) Verifica riferimenti hardcoded al vecchio path
 
 Nel progetto ci sono riferimenti a `/opt/backup-hub` che in produzione Hetzner devono diventare `/opt/knack-services/backup-hub`.

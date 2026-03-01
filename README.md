@@ -42,6 +42,7 @@ Dipendenze usate dal codice:
 - `requests`
 - `boto3` (con `botocore`)
 
+> Installa dipendenze con `./venv/bin/pip install -r requirements.txt` (oppure `pip install -r requirements.txt` nel tuo ambiente).
 > Nota: il progetto in questo stato non espone un `requirements.txt`; se devi ricreare l'ambiente da zero, installa i pacchetti sopra.
 
 ---
@@ -104,6 +105,7 @@ Contiene tutte le variabili sensibili:
 - endpoint/bucket/regione Wasabi
 - app id e api key Knack per ogni app
 
+Il runner carica automaticamente questo file (`KEY=VALUE`) all'avvio.
 Il runner carica questo file automaticamente con `load_dotenv(...)`.
 
 ---
@@ -153,6 +155,13 @@ Il nome esatto è quello specificato nei campi:
 source venv/bin/activate
 ```
 
+## 6.2 Installa/aggiorna dipendenze
+
+```bash
+./venv/bin/pip install -r requirements.txt
+```
+
+## 6.3 Verifica CLI disponibile
 ## 6.2 Verifica CLI disponibile
 
 ```bash
@@ -161,6 +170,13 @@ source venv/bin/activate
 
 Output atteso: opzioni `--app APP` oppure `--all`.
 
+## 6.4 Esegui backup di tutte le app
+
+```bash
+./venv/bin/python -m engine.runners.run_backup --all
+```
+
+## 6.5 Esegui backup di una sola app
 ## 6.3 Esegui backup di tutte le app
 
 ```bash
