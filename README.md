@@ -15,12 +15,14 @@ Il comando principale è:
 
 ```bash
 ./venv/bin/python -m engine.runners.run_backup --all
+python -m engine.runners.run_backup --all
 ```
 
 oppure:
 
 ```bash
 ./venv/bin/python -m engine.runners.run_backup --app <nome_app>
+python -m engine.runners.run_backup --app <nome_app>
 ```
 
 ---
@@ -163,6 +165,7 @@ Output atteso: opzioni `--app APP` oppure `--all`.
 
 ```bash
 ./venv/bin/python -m engine.runners.run_backup --all
+python -m engine.runners.run_backup --all
 ```
 
 ## 6.4 Esegui backup di una sola app
@@ -171,6 +174,7 @@ Esempio:
 
 ```bash
 ./venv/bin/python -m engine.runners.run_backup --app app_unimarconi
+python -m engine.runners.run_backup --app app_unimarconi
 ```
 
 Se il nome app non esiste in `apps.yaml`, il processo termina con errore.
@@ -191,6 +195,7 @@ Atteso: almeno `apps.yaml` e `credentials.env`.
 
 ```bash
 ./venv/bin/python - <<'PY'
+python - <<'PY'
 import yaml
 from pathlib import Path
 p = Path('control/config/apps.yaml')
@@ -205,6 +210,7 @@ PY
 
 ```bash
 ./venv/bin/python - <<'PY'
+python - <<'PY'
 import yaml
 from pathlib import Path
 
@@ -285,6 +291,7 @@ Chiavi oggetti generate dal runner:
 cd /opt/backup-hub
 source venv/bin/activate
 ./venv/bin/python -m engine.runners.run_backup --all
+python -m engine.runners.run_backup --all
 ```
 
 Poi controlla:
